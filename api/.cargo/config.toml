@@ -1,0 +1,6 @@
+[build]
+rustflags = ["--cfg", "uuid_unstable"]
+
+[env]
+DATABASE_URL = "postgres://postgres:postgres@localhost:5432/rinha"
+PORT = "9999"
