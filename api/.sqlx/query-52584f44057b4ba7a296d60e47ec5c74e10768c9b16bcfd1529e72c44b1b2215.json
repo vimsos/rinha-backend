@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select payload from person where id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "payload",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "52584f44057b4ba7a296d60e47ec5c74e10768c9b16bcfd1529e72c44b1b2215"
+}
