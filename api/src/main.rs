@@ -77,7 +77,11 @@ async fn get_by_id(State(db): State<Db>, Path(id): Path<Uuid>) -> impl IntoRespo
     let person = db.get_by_id(id).await;
 
     match person {
-        Ok(Some(payload)) => Ok(payload),
+        Ok(Some(payload)) => Ok((
+            StatusCode::OK,
+            [(header::CONTENT_TYPE, "application/json")],
+            payload,
+        )),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(error) => {
             error!("get_by_ad: {}", error);
