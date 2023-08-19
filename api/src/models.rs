@@ -18,7 +18,7 @@ pub struct PersonPostDTO {
 #[derive(Deserialize, Debug)]
 pub struct Person {
     pub id: Uuid,
-    pub handle: String,
+    pub handle: CompactString,
     pub payload: String,
     pub search_vector: Option<String>,
 }
@@ -48,7 +48,6 @@ impl TryFrom<PersonPostDTO> for Person {
         let id = Uuid::now_v7();
         Ok(Self {
             id,
-            handle: value.handle.to_string(),
             payload: match value.stacks {
                 Some(stack) => {
                     let mut stack_buf = String::with_capacity(200);
@@ -72,6 +71,7 @@ impl TryFrom<PersonPostDTO> for Person {
                 ),
             },
             search_vector: Some("todo!()".to_owned()),
+            handle: value.handle,
         })
     }
 }
