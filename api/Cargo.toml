@@ -13,6 +13,8 @@ once_cell = "1"
 uuid = { version = "1", features = ["serde", "v7"] }
 smallvec = { version = "1", features = ["serde"] }
 compact_str = { version = "0.7", features = ["serde"] }
+log = "0.4"
+simplelog = { version = "0.12", features = ["termcolor"] }
 
 [profile.dev.package.sqlx-macros]
 opt-level = 3

@@ -6,8 +6,10 @@ use axum::{
     Json, Router,
 };
 use db::Db;
+use log::{error, SetLoggerError};
 use models::PersonPostDTO;
 use serde::Deserialize;
+use simplelog::{CombinedLogger, Config, LevelFilter, TermLogger, TerminalMode};
 use sqlx::postgres::PgPoolOptions;
 use std::{env::var, net::SocketAddr};
 use uuid::Uuid;
@@ -19,6 +21,8 @@ mod models;
 
 #[tokio::main]
 async fn main() {
+    init_logger().unwrap();
+
     let pool = PgPoolOptions::new()
         .max_connections(10)
         .connect(
@@ -60,7 +64,10 @@ async fn create(State(db): State<Db>, Json(dto): Json<PersonPostDTO>) -> impl In
             Err(sqlx::Error::Database(error)) if error.is_unique_violation() => {
                 Err(StatusCode::UNPROCESSABLE_ENTITY)
             }
-            Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+            Err(error) => {
+                error!("create: {}", error);
+                Err(StatusCode::INTERNAL_SERVER_ERROR)
+            }
         },
         Err(_) => Err(StatusCode::UNPROCESSABLE_ENTITY),
     }
@@ -72,7 +79,10 @@ async fn get_by_id(State(db): State<Db>, Path(id): Path<Uuid>) -> impl IntoRespo
     match person {
         Ok(Some(payload)) => Ok(payload),
         Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+        Err(error) => {
+            error!("get_by_ad: {}", error);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -89,6 +99,18 @@ async fn count(State(db): State<Db>) -> impl IntoResponse {
 
     match count {
         Ok(count) => Ok(format!("{count}\n")),
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+        Err(error) => {
+            error!("count: {}", error);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
+}
+
+fn init_logger() -> Result<(), SetLoggerError> {
+    CombinedLogger::init(vec![TermLogger::new(
+        LevelFilter::Info,
+        Config::default(),
+        TerminalMode::Mixed,
+        simplelog::ColorChoice::Always,
+    )])
 }
