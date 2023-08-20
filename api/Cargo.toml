@@ -18,3 +18,8 @@ simplelog = { version = "0.12", features = ["termcolor"] }
 
 [profile.dev.package.sqlx-macros]
 opt-level = 3
+
+[profile.release]
+codegen-units = 1
+lto = true
+panic = "abort"
