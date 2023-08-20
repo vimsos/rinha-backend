@@ -1,0 +1,5 @@
+cargo sqlx prepare --database-url postgres://postgres:postgres@localhost:5432/rinha
+
+docker build -t rinha-api .
+
+docker compose down -v --rmi local && docker compose up --force-recreate
