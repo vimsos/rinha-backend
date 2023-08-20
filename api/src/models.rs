@@ -1,9 +1,9 @@
 use compact_str::CompactString;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 use uuid::Uuid;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 pub struct PersonPostDTO {
     #[serde(rename = "nome")]
     pub name: CompactString,
@@ -15,15 +15,27 @@ pub struct PersonPostDTO {
     pub stacks: Option<SmallVec<[CompactString; 10]>>,
 }
 
-#[derive(Deserialize, Debug)]
-pub struct Person {
+pub struct PersonEntity {
     pub id: Uuid,
     pub handle: CompactString,
     pub payload: String,
-    pub search_vector: Option<String>,
+    pub search: String,
 }
 
-impl TryFrom<PersonPostDTO> for Person {
+#[derive(Serialize)]
+pub struct PersonPayload<'a> {
+    pub id: &'a Uuid,
+    #[serde(rename = "nome")]
+    pub name: &'a CompactString,
+    #[serde(rename = "apelido")]
+    pub handle: &'a CompactString,
+    #[serde(rename = "nascimento")]
+    pub birth: &'a CompactString,
+    #[serde(rename = "stack")]
+    pub stacks: &'a Option<SmallVec<[CompactString; 10]>>,
+}
+
+impl TryFrom<PersonPostDTO> for PersonEntity {
     type Error = ();
 
     fn try_from(value: PersonPostDTO) -> Result<Self, ()> {
@@ -44,33 +56,31 @@ impl TryFrom<PersonPostDTO> for Person {
                 return Err(());
             }
         }
-
         let id = Uuid::now_v7();
+        let payload = PersonPayload {
+            id: &id,
+            name: &value.name,
+            handle: &value.handle,
+            birth: &value.birth,
+            stacks: &value.stacks,
+        };
+
+        let mut search_buf = String::with_capacity(400);
+        search_buf.push_str(&value.handle);
+        search_buf.push(' ');
+        search_buf.push_str(&value.name);
+        search_buf.push(' ');
+        if let Some(stacks) = &value.stacks {
+            stacks.iter().for_each(|s| {
+                search_buf.push_str(s);
+                search_buf.push(' ');
+            })
+        }
+
         Ok(Self {
             id,
-            payload: match value.stacks {
-                Some(stack) => {
-                    let mut stack_buf = String::with_capacity(200);
-                    stack
-                        .iter()
-                        .for_each(|s| stack_buf.push_str(&format!(r#""{s}","#)));
-                    stack_buf.pop();
-                    format!(
-                        r#"{{"id":"{}","apelido":"{}","nascimento":"{}","stack":[{}]}}"#,
-                        id,
-                        value.handle.as_str(),
-                        value.birth,
-                        stack_buf
-                    )
-                }
-                None => format!(
-                    r#"{{"id":"{}","apelido":"{}","nascimento":"{}","stack":null}}"#,
-                    id,
-                    value.handle.as_str(),
-                    value.birth
-                ),
-            },
-            search_vector: Some("todo!()".to_owned()),
+            search: search_buf,
+            payload: serde_json::to_string(&payload).unwrap(),
             handle: value.handle,
         })
     }

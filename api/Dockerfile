@@ -1,8 +1,9 @@
-FROM rust:1.71.1-slim-bullseye as build
+FROM rustlang/rust:nightly-bookworm-slim as build
 
 WORKDIR /source
 COPY Cargo.toml .
 COPY Cargo.lock .
+COPY rust-toolchain.toml .
 COPY .cargo/config.Dockerfile.toml .cargo/config.toml
 RUN mkdir src && echo "fn main() {}" > src/main.rs
 RUN cargo build --release

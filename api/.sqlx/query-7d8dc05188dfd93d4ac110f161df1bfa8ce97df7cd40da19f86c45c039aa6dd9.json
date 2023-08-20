@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select payload from person where search ilike $1 limit 50",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "payload",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "7d8dc05188dfd93d4ac110f161df1bfa8ce97df7cd40da19f86c45c039aa6dd9"
+}

@@ -1,7 +1,7 @@
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
-use crate::models::Person;
+use crate::models::PersonEntity;
 
 #[derive(Clone)]
 pub struct Db {
@@ -9,21 +9,21 @@ pub struct Db {
 }
 
 impl Db {
-    pub async fn insert(&self, person: &Person) -> Result<(), sqlx::Error> {
-        sqlx::query::<Postgres>(
-            "insert into person (id, handle, payload, search_vector) values($1, $2, $3, to_tsvector($4))"
+    pub async fn insert(&self, person: &PersonEntity) -> Result<(), sqlx::Error> {
+        sqlx::query!(
+            "insert into person (id, handle, payload, search) values($1, $2, $3, $4)",
+            &person.id,
+            person.handle.as_str(),
+            &person.payload,
+            &person.search
         )
-        .bind(person.id)
-        .bind(person.handle.as_str())
-        .bind(&person.payload)
-        .bind(&person.search_vector)
         .execute(&self.pool)
         .await?;
 
         Ok(())
     }
 
-    pub async fn get_by_id(&self, id: Uuid) -> Result<Option<String>, sqlx::Error> {
+    pub async fn get_by_id(&self, id: &Uuid) -> Result<Option<String>, sqlx::Error> {
         let record = sqlx::query_scalar!("select payload from person where id = $1", id)
             .fetch_optional(&self.pool)
             .await?;
@@ -38,5 +38,16 @@ impl Db {
             .unwrap_or(0);
 
         Ok(count)
+    }
+
+    pub async fn search(&self, term: String) -> Result<Vec<String>, sqlx::Error> {
+        let matches = sqlx::query_scalar!(
+            "select payload from person where search ilike $1 limit 50",
+            format!("%{}%", term)
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(matches)
     }
 }

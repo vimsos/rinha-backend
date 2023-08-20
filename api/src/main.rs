@@ -1,3 +1,5 @@
+#![feature(iter_intersperse)]
+
 use axum::{
     extract::{Path, Query, State},
     http::{header, StatusCode},
@@ -14,7 +16,7 @@ use sqlx::postgres::PgPoolOptions;
 use std::{env::var, net::SocketAddr};
 use uuid::Uuid;
 
-use crate::models::Person;
+use crate::models::PersonEntity;
 
 mod db;
 mod models;
@@ -24,7 +26,7 @@ async fn main() {
     init_logger().unwrap();
 
     let pool = PgPoolOptions::new()
-        .max_connections(10)
+        .max_connections(32)
         .connect(
             &var("DATABASE_URL")
                 .unwrap_or("postgres://postgres:postgres@localhost:5432/rinha".to_owned()),
@@ -55,7 +57,7 @@ async fn main() {
 }
 
 async fn create(State(db): State<Db>, Json(dto): Json<PersonPostDTO>) -> impl IntoResponse {
-    match Person::try_from(dto) {
+    match PersonEntity::try_from(dto) {
         Ok(person) => match db.insert(&person).await {
             Ok(_) => Ok((
                 StatusCode::CREATED,
@@ -74,7 +76,7 @@ async fn create(State(db): State<Db>, Json(dto): Json<PersonPostDTO>) -> impl In
 }
 
 async fn get_by_id(State(db): State<Db>, Path(id): Path<Uuid>) -> impl IntoResponse {
-    let person = db.get_by_id(id).await;
+    let person = db.get_by_id(&id).await;
 
     match person {
         Ok(Some(payload)) => Ok((
@@ -84,7 +86,7 @@ async fn get_by_id(State(db): State<Db>, Path(id): Path<Uuid>) -> impl IntoRespo
         )),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(error) => {
-            error!("get_by_ad: {}", error);
+            error!("get_by_id: {}", error);
             Err(StatusCode::INTERNAL_SERVER_ERROR)
         }
     }
@@ -94,8 +96,31 @@ async fn get_by_id(State(db): State<Db>, Path(id): Path<Uuid>) -> impl IntoRespo
 pub struct SearchParam {
     pub t: String,
 }
-async fn search(State(_db): State<Db>, Query(_t): Query<SearchParam>) -> impl IntoResponse {
-    (StatusCode::OK, "[]")
+async fn search(State(db): State<Db>, Query(query): Query<SearchParam>) -> impl IntoResponse {
+    let search_result = db.search(query.t).await;
+
+    match search_result {
+        Ok(matches) => {
+            let mut response = String::with_capacity(400 * 50);
+            response.push('[');
+            matches
+                .iter()
+                .map(|m| m.as_str())
+                .intersperse(",")
+                .for_each(|p| response.push_str(p));
+            response.push(']');
+
+            Ok((
+                StatusCode::OK,
+                [(header::CONTENT_TYPE, "application/json")],
+                response,
+            ))
+        }
+        Err(error) => {
+            error!("search: {}", error);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
 }
 
 async fn count(State(db): State<Db>) -> impl IntoResponse {

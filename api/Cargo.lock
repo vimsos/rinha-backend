@@ -1059,7 +1059,6 @@ dependencies = [
  "axum",
  "compact_str",
  "log",
- "once_cell",
  "serde",
  "serde_json",
  "simplelog",

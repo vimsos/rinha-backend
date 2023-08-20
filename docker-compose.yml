@@ -2,7 +2,7 @@ version: "3.5"
 
 services:
   api1:
-    image: rinha-api
+    build: ./api
     hostname: api1
     environment:
       PORT: 8000
@@ -18,7 +18,7 @@ services:
           memory: "0.25GB"
 
   api2:
-    image: rinha-api
+    build: ./api
     hostname: api2
     environment:
       PORT: 8000
@@ -49,7 +49,7 @@ services:
           memory: "1GB"
 
   pg:
-    image: postgres:15
+    image: postgres:16beta3-bookworm
     volumes:
       - ./config/migrations:/docker-entrypoint-initdb.d
     command: postgres -c log_min_messages=FATAL
