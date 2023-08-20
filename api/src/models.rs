@@ -56,6 +56,12 @@ impl TryFrom<PersonPostDTO> for PersonEntity {
                 return Err(());
             }
         }
+        if let Some(stacks) = &value.stacks {
+            if stacks.into_iter().any(|s| s.len() > 32) {
+                return Err(());
+            }
+        }
+
         let id = Uuid::now_v7();
         let payload = PersonPayload {
             id: &id,
